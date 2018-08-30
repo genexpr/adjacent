@@ -8,10 +8,13 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sync"
 )
 
-var group = flag.String("group", "s", "language group - choose from germanic (g), slavic (s), romance (r) - ")
-var word = flag.String("word", "language", "word to translate")
+var (
+	group = flag.String("group", "s", "language group - choose from germanic (g), slavic (s), romance (r) - ")
+	word  = flag.String("word", "language", "word to translate")
+)
 
 type Response struct {
 	Code int
@@ -27,14 +30,17 @@ func main() {
 		log.Fatalln("language group not supported")
 	}
 
-	ch := make(chan string)
-	for _, g := range languageList {
-		go request(*word, g, ch)
+	wg := sync.WaitGroup{}
+	for i := 0; i < len(languageList); i++ {
+		wg.Add(1)
+		l := languageList[i]
+		go func() {
+			request(*word, l)
+			wg.Done()
+		}()
 	}
 
-	for i := 0; i < len(languageList); i++ {
-		fmt.Println(<-ch)
-	}
+	wg.Wait()
 }
 
 func checkLanguageGroup(group string) ([]string, error) {
@@ -54,7 +60,7 @@ func checkLanguageGroup(group string) ([]string, error) {
 }
 
 //Make a request to the Yandex.Translate API to get the translation of a word from English to a given language.
-func request(word string, language string, ch chan string) {
+func request(word string, language string) {
 	const token = "[YOUR TOKEN]"
 	url := fmt.Sprintf("https://translate.yandex.net/api/v1.5/tr.json/translate?key=%s&text=%s&lang=en-%s",
 		token, word, language)
@@ -73,5 +79,5 @@ func request(word string, language string, ch chan string) {
 	var res Response
 	json.Unmarshal(bytes, &res)
 	output := fmt.Sprintf("%s\t%s", res.Lang, res.Text[0])
-	ch <- output
+	fmt.Println(output)
 }
