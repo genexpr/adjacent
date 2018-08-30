@@ -66,7 +66,7 @@ func request(word string, language string) {
 		token, word, language)
 	response, err := http.Get(url)
 
-	if err != nil {
+	if err != nil || response.StatusCode != http.StatusOK {
 		log.Fatalln("could not connect to the API")
 	}
 	defer response.Body.Close()
