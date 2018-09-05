@@ -27,7 +27,7 @@ func main() {
 
 	languageList, err := checkLanguageGroup(*group)
 	if err != nil {
-		log.Fatalln("language group not supported")
+		log.Fatalln(err)
 	}
 
 	wg := sync.WaitGroup{}
@@ -67,7 +67,7 @@ func request(word string, language string) {
 	response, err := http.Get(url)
 
 	if err != nil || response.StatusCode != http.StatusOK {
-		log.Fatalln("could not connect to the API")
+		log.Fatalln("could not connect to the API, make sure your token is set and valid")
 	}
 	defer response.Body.Close()
 

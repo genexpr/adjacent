@@ -5,7 +5,7 @@ Choose from the Slavic, Germanic or Romance groups.
 
 > adjacent -group=s -word=sky
 
-The above will display how "sky" is written in a few slavic languages, such as Croatian, Polish, Serbian and so on.
+The above will display how "sky" is written in a few Slavic languages, such as Croatian, Polish, Serbian and so on.
 
 If no group or word is supplied, the program will use the default values.
 The linguistic group is then Slavic, and the word is "language".
