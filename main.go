@@ -45,7 +45,7 @@ func main() {
 
 func checkLanguageGroup(group string) ([]string, error) {
 	var slavicList = []string{"ru", "be", "bg", "bs", "mk", "pl", "sr", "sk", "sl", "cs", "hr", "uk"}
-	var germanicList = []string{"af", "nl", "da", "is", "de", "no", "sw"}
+	var germanicList = []string{"af", "nl", "da", "is", "de", "no", "sv"}
 	var romanceList = []string{"it", "pt", "ro", "fr", "es", "ca"}
 
 	if group == "g" || group == "germanic" {
