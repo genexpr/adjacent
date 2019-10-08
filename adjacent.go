@@ -45,7 +45,8 @@ func main() {
 		go func() {
 			translation, err := Request(*word, l, token)
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
+				return
 			}
 			fmt.Println(translation)
 			wg.Done()
@@ -89,7 +90,7 @@ func Request(word string, language string, token string) (string, error) {
 	response, err := http.Get(url)
 
 	if err != nil || response.StatusCode != http.StatusOK {
-		return "", errors.New("could not connect to the API, make sure your token is valid")
+		log.Fatalln("could not connect to the API, make sure your token is valid")
 	}
 	defer response.Body.Close()
 
