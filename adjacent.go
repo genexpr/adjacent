@@ -13,8 +13,14 @@ import (
 )
 
 var (
-	group = flag.String("group", "", "language group - choose from germanic (g), slavic (s), romance (r)")
+	group = flag.String("group", "g", "language group - choose from germanic (g), slavic (s), romance (r)")
 	word  = flag.String("word", "language", "word to translate")
+)
+
+var (
+	slavic   = []string{"ru", "be", "bg", "bs", "mk", "pl", "sr", "sk", "sl", "cs", "hr", "uk"}
+	germanic = []string{"af", "nl", "da", "is", "de", "no", "sv"}
+	romance  = []string{"it", "pt", "ro", "fr", "es", "ca"}
 )
 
 type Response struct {
@@ -33,24 +39,26 @@ func main() {
 			"YANDEX_TRANSLATE_TOKEN")
 	}
 
-	languageList, err := GetLanguageList(*group)
+	languages, err := getLanguages(*group)
 	if err != nil {
-		log.Fatalln(err)
+		usage()
+		os.Exit(1)
 	}
 
 	wg := sync.WaitGroup{}
-	for i := 0; i < len(languageList); i++ {
+	for i := 0; i < len(languages); i++ {
 		wg.Add(1)
-		l := languageList[i]
-		go func() {
-			translation, err := Request(*word, l, token)
+
+		go func(lang string) {
+			translation, err := request(*word, lang, token)
 			if err != nil {
 				log.Println(err)
 				return
 			}
 			fmt.Println(translation)
 			wg.Done()
-		}()
+
+		}(languages[i])
 	}
 
 	wg.Wait()
@@ -61,30 +69,22 @@ func usage() {
 	flag.PrintDefaults()
 }
 
-func GetLanguageList(group string) ([]string, error) {
-	if group == "" {
-		usage()
-		os.Exit(1)
-	}
-
-	var slavicList = []string{"ru", "be", "bg", "bs", "mk", "pl", "sr", "sk", "sl", "cs", "hr", "uk"}
-	var germanicList = []string{"af", "nl", "da", "is", "de", "no", "sv"}
-	var romanceList = []string{"it", "pt", "ro", "fr", "es", "ca"}
-
-	if group == "g" || group == "germanic" {
-		return germanicList, nil
-	} else if group == "s" || group == "slavic" {
-		return slavicList, nil
-	} else if group == "r" || group == "romance" {
-		return romanceList, nil
-	} else {
+func getLanguages(group string) ([]string, error) {
+	switch group {
+	case "g", "germanic":
+		return germanic, nil
+	case "s", "slavic":
+		return slavic, nil
+	case "r", "romance":
+		return romance, nil
+	default:
 		return nil, errors.New("language group not supported")
 	}
 }
 
-// Request makes a request to the Yandex.Translate API to get the translation of a word
+// request makes a request to the Yandex.Translate API to get the translation of a word
 // from English to a given language.
-func Request(word string, language string, token string) (string, error) {
+func request(word string, language string, token string) (string, error) {
 	url := fmt.Sprintf("https://translate.yandex.net/api/v1.5/tr.json/translate?key=%s&text=%s&lang=en-%s",
 		token, word, language)
 	response, err := http.Get(url)
