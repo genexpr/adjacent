@@ -23,7 +23,7 @@ var (
 	romance  = []string{"it", "pt", "ro", "fr", "es", "ca"}
 )
 
-type Response struct {
+type response struct {
 	Code int
 	Lang string
 	Text []string
@@ -50,7 +50,7 @@ func main() {
 		wg.Add(1)
 
 		go func(lang string) {
-			translation, err := request(*word, lang, token)
+			translation, err := makeRequest(*word, lang, token)
 			if err != nil {
 				log.Println(err)
 				return
@@ -82,25 +82,25 @@ func getLanguages(group string) ([]string, error) {
 	}
 }
 
-// request makes a request to the Yandex.Translate API to get the translation of a word
+// makeRequest makes a request to the Yandex.Translate API to get the translation of a word
 // from English to a given language.
-func request(word string, language string, token string) (string, error) {
+func makeRequest(word string, language string, token string) (string, error) {
 	url := fmt.Sprintf("https://translate.yandex.net/api/v1.5/tr.json/translate?key=%s&text=%s&lang=en-%s",
 		token, word, language)
-	response, err := http.Get(url)
+	resp, err := http.Get(url)
 
-	if err != nil || response.StatusCode != http.StatusOK {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		log.Fatalln("could not connect to the API, make sure your token is valid")
 	}
-	defer response.Body.Close()
+	defer resp.Body.Close()
 
-	bytes, err := ioutil.ReadAll(response.Body)
+	bytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	var res Response
-	json.Unmarshal(bytes, &res)
-	output := fmt.Sprintf("%s\t%s", res.Lang, res.Text[0])
+	var r response
+	json.Unmarshal(bytes, &r)
+	output := fmt.Sprintf("%s\t%s", r.Lang, r.Text[0])
 	return output, nil
 }
