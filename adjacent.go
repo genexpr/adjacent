@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	group = flag.String("group", "g", "language group - choose from germanic (g), slavic (s), romance (r)")
-	word  = flag.String("word", "language", "English word to translate")
+	group = flag.String("group", "", "Language group - choose from Germanic (g), Slavic (s), Romance (r)")
+	text  = flag.String("text", "", "English text to translate")
 )
 
 var (
@@ -26,7 +26,7 @@ var (
 )
 
 func main() {
-	flag.Usage = usage
+	flag.Usage = usageAndExit
 	flag.Parse()
 
 	var token = os.Getenv("DEEPL_TRANSLATE_TOKEN")
@@ -36,8 +36,11 @@ func main() {
 
 	languages, err := getLanguagesFromGroup(*group)
 	if err != nil {
-		usage()
-		os.Exit(1)
+		usageAndExit()
+	}
+
+	if *text == "" {
+		usageAndExit()
 	}
 
 	wg := sync.WaitGroup{}
@@ -46,7 +49,7 @@ func main() {
 
 		go func(lang string) {
 			defer wg.Done()
-			translation, err := translate(*word, lang, token)
+			translation, err := translate(*text, lang, token)
 			if err != nil {
 				log.Println(err)
 				return
@@ -59,9 +62,10 @@ func main() {
 	wg.Wait()
 }
 
-func usage() {
+func usageAndExit() {
 	fmt.Println("Usage:")
 	flag.PrintDefaults()
+	os.Exit(1)
 }
 
 func getLanguagesFromGroup(group string) ([]string, error) {
