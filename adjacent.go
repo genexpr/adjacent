@@ -5,41 +5,36 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 )
 
 var (
 	group = flag.String("group", "g", "language group - choose from germanic (g), slavic (s), romance (r)")
-	word  = flag.String("word", "language", "word to translate")
+	word  = flag.String("word", "language", "English word to translate")
 )
 
 var (
-	slavic   = []string{"ru", "be", "bg", "bs", "mk", "pl", "sr", "sk", "sl", "cs", "hr", "uk"}
-	germanic = []string{"af", "nl", "da", "is", "de", "no", "sv"}
-	romance  = []string{"it", "pt", "ro", "fr", "es", "ca"}
+	slavic   = []string{"RU", "BG", "PL", "CS", "LT", "LV", "SL", "SK", "UK"}
+	germanic = []string{"NL", "DA", "DE", "SV"}
+	romance  = []string{"IT", "PT-PT", "RO", "FR", "ES"}
 )
-
-type response struct {
-	Code int
-	Lang string
-	Text []string
-}
 
 func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	var token = os.Getenv("YANDEX_TRANSLATE_TOKEN")
+	var token = os.Getenv("DEEPL_TRANSLATE_TOKEN")
 	if token == "" {
-		log.Fatalf("your token for the API does not exist, set it as a value of the %s environment variable\n",
-			"YANDEX_TRANSLATE_TOKEN")
+		log.Fatal("API token missing, set it as the value of the DEEPL_TRANSLATE_TOKEN environment variable.")
 	}
 
-	languages, err := getLanguages(*group)
+	languages, err := getLanguagesFromGroup(*group)
 	if err != nil {
 		usage()
 		os.Exit(1)
@@ -50,13 +45,13 @@ func main() {
 		wg.Add(1)
 
 		go func(lang string) {
-			translation, err := makeRequest(*word, lang, token)
+			defer wg.Done()
+			translation, err := translate(*word, lang, token)
 			if err != nil {
 				log.Println(err)
 				return
 			}
 			fmt.Println(translation)
-			wg.Done()
 
 		}(languages[i])
 	}
@@ -69,7 +64,7 @@ func usage() {
 	flag.PrintDefaults()
 }
 
-func getLanguages(group string) ([]string, error) {
+func getLanguagesFromGroup(group string) ([]string, error) {
 	switch group {
 	case "g", "germanic":
 		return germanic, nil
@@ -82,25 +77,47 @@ func getLanguages(group string) ([]string, error) {
 	}
 }
 
-// makeRequest makes a request to the Yandex.Translate API to get the translation of a word
-// from English to a given language.
-func makeRequest(word string, language string, token string) (string, error) {
-	url := fmt.Sprintf("https://translate.yandex.net/api/v1.5/tr.json/translate?key=%s&text=%s&lang=en-%s",
-		token, word, language)
-	resp, err := http.Get(url)
+// translate sends a request to the DeepL API to get the translation of a piece of text
+// from English into a given language.
+func translate(text, language, token string) (string, error) {
+	const baseURL = "https://api-free.deepl.com/v2/translate"
 
-	if err != nil || resp.StatusCode != http.StatusOK {
-		log.Fatalln("could not connect to the API, make sure your token is valid")
-	}
-	defer resp.Body.Close()
+	data := url.Values{}
+	data.Set("text", text)
+	data.Set("source_lang", "EN")
+	data.Set("target_lang", language)
+	encodedData := data.Encode()
 
-	bytes, err := ioutil.ReadAll(resp.Body)
+	req, err := http.NewRequest(http.MethodPost, baseURL, strings.NewReader(encodedData))
 	if err != nil {
 		return "", err
 	}
 
-	var r response
-	json.Unmarshal(bytes, &r)
-	output := fmt.Sprintf("%s\t%s", r.Lang, r.Text[0])
-	return output, nil
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
+	req.Header.Add("Authorization", "DeepL-Auth-Key "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return "", errors.New("failed to get a response for " + language)
+	}
+	defer resp.Body.Close()
+
+	var r APIResponse
+	err = json.NewDecoder(resp.Body).Decode(&r)
+	if err != nil {
+		return "", err
+	}
+
+	if len(r.Translations) == 0 || r.Translations[0].Text == "" {
+		return "", errors.New("no translation available")
+	}
+
+	return fmt.Sprintf("%s\t%s", language, r.Translations[0].Text), nil
+}
+
+type APIResponse struct {
+	Translations []struct {
+		Text string `json:"text"`
+	} `json:"translations"`
 }

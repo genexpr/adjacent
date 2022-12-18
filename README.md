@@ -15,4 +15,4 @@ The goal is to explore and showcase the similarity of roots in languages that ar
 Some Wikipedia pages have tables for a word in multiple related languages. This program allows one to query for any word 
 and get a similar overview.
 
-**Powered by Yandex.Translate**
+**You would need a token for the DeepL Translation API to use this.**
