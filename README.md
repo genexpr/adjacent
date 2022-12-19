@@ -16,7 +16,7 @@ Set your API token as the value for the `DEEPL_TRANSLATE_TOKEN` environment vari
 Choose from the Slavic, Germanic or Romance groups.
 
 ```
-$ adjacent -text=sky -group=s
+$ adjacent -text=sky -group=slavic
 ```
 
 The above will display how "sky" is written in a few Slavic languages,

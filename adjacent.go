@@ -21,8 +21,8 @@ var (
 
 var (
 	slavic   = []string{"RU", "BG", "PL", "CS", "LT", "LV", "SL", "SK", "UK"}
-	germanic = []string{"NL", "DA", "DE", "SV"}
 	romance  = []string{"IT", "PT-PT", "RO", "FR", "ES"}
+	germanic = []string{"NL", "DA", "DE", "SV"}
 )
 
 func main() {
@@ -44,7 +44,7 @@ func main() {
 	}
 
 	wg := sync.WaitGroup{}
-	for i := 0; i < len(languages); i++ {
+	for _, language := range languages {
 		wg.Add(1)
 
 		go func(lang string) {
@@ -54,9 +54,9 @@ func main() {
 				log.Println(err)
 				return
 			}
-			fmt.Println(translation)
+			fmt.Printf("%s\t%s\n", lang, translation)
 
-		}(languages[i])
+		}(language)
 	}
 
 	wg.Wait()
@@ -117,7 +117,7 @@ func translate(text, language, token string) (string, error) {
 		return "", errors.New("no translation available")
 	}
 
-	return fmt.Sprintf("%s\t%s", language, r.Translations[0].Text), nil
+	return r.Translations[0].Text, nil
 }
 
 type APIResponse struct {
