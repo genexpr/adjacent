@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -31,11 +30,13 @@ func main() {
 
 	var token = os.Getenv("DEEPL_TRANSLATE_TOKEN")
 	if token == "" {
-		log.Fatal("API token missing, set it as the value of the DEEPL_TRANSLATE_TOKEN environment variable.")
+		fmt.Fprintln(os.Stderr, "API token missing, set it as the value of the DEEPL_TRANSLATE_TOKEN environment variable.")
+		os.Exit(1)
 	}
 
 	languages, err := getLanguagesFromGroup(*group)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		usageAndExit()
 	}
 
@@ -43,7 +44,7 @@ func main() {
 		usageAndExit()
 	}
 
-	wg := sync.WaitGroup{}
+	var wg sync.WaitGroup
 	for _, language := range languages {
 		wg.Add(1)
 
@@ -51,7 +52,7 @@ func main() {
 			defer wg.Done()
 			translation, err := translate(*text, lang, token)
 			if err != nil {
-				log.Println(err)
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				return
 			}
 			fmt.Printf("%s\t%s\n", lang, translation)
@@ -69,6 +70,9 @@ func usageAndExit() {
 }
 
 func getLanguagesFromGroup(group string) ([]string, error) {
+	if group == "" {
+		return nil, fmt.Errorf("language group is not provided")
+	}
 	switch group {
 	case "g", "germanic":
 		return germanic, nil
@@ -77,21 +81,20 @@ func getLanguagesFromGroup(group string) ([]string, error) {
 	case "r", "romance":
 		return romance, nil
 	default:
-		return nil, errors.New("language group not supported")
+		return nil, fmt.Errorf("language group %s is not supported", group)
 	}
 }
 
 // translate sends a request to the DeepL API to get the translation of a piece of text
 // from English into a given language.
 func translate(text, language, token string) (string, error) {
-	const baseURL = "https://api-free.deepl.com/v2/translate"
-
 	data := url.Values{}
 	data.Set("text", text)
 	data.Set("source_lang", "EN")
 	data.Set("target_lang", language)
 	encodedData := data.Encode()
 
+	const baseURL = "https://api-free.deepl.com/v2/translate"
 	req, err := http.NewRequest(http.MethodPost, baseURL, strings.NewReader(encodedData))
 	if err != nil {
 		return "", err
@@ -113,7 +116,7 @@ func translate(text, language, token string) (string, error) {
 		return "", err
 	}
 
-	if len(r.Translations) == 0 || r.Translations[0].Text == "" {
+	if len(r.Translations) == 0 {
 		return "", errors.New("no translation available")
 	}
 
