@@ -1,6 +1,6 @@
 ## Overview
 
-This program displays a translation of an English word (or text) in other languages of a single linguistic group.
+This program displays a translation of an English word (or text) in languages of a single, pre-defined linguistic group.
 
 The goal is to explore and showcase the similarity of roots in languages that are considered closely related.
 
@@ -16,7 +16,7 @@ Set your API token as the value for the `DEEPL_TRANSLATE_TOKEN` environment vari
 Choose from the Slavic, Germanic or Romance groups.
 
 ```
-$ adjacent -text=sky -group=slavic
+$ translate -text=sky -group=slavic
 ```
 
 The above will display how "sky" is written in a few Slavic languages,
@@ -25,5 +25,5 @@ such as Czech, Polish, Ukrainian, and so on.
 For help:
 
 ```
-$ adjacent -h
+$ translate -h
 ```
