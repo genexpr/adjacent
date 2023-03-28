@@ -18,25 +18,19 @@ var (
 	text  = flag.String("text", "", "English text to translate")
 )
 
-var (
-	slavic   = []string{"RU", "BG", "PL", "CS", "LT", "LV", "SL", "SK", "UK"}
-	romance  = []string{"IT", "PT-PT", "RO", "FR", "ES"}
-	germanic = []string{"NL", "DA", "DE", "SV"}
-)
-
 func main() {
 	flag.Usage = usageAndExit
 	flag.Parse()
 
 	var token = os.Getenv("DEEPL_TRANSLATE_TOKEN")
 	if token == "" {
-		fmt.Fprintln(os.Stderr, "API token missing, set it as the value of the DEEPL_TRANSLATE_TOKEN environment variable.")
+		_, _ = fmt.Fprintln(os.Stderr, "API token missing, set it as the value of the DEEPL_TRANSLATE_TOKEN environment variable.")
 		os.Exit(1)
 	}
 
 	languages, err := getLanguagesFromGroup(*group)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		usageAndExit()
 	}
 
@@ -52,7 +46,7 @@ func main() {
 			defer wg.Done()
 			translation, err := translate(*text, lang, token)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				return
 			}
 			fmt.Printf("%s\t%s\n", lang, translation)
@@ -73,6 +67,11 @@ func getLanguagesFromGroup(group string) ([]string, error) {
 	if group == "" {
 		return nil, fmt.Errorf("language group is not provided")
 	}
+	var (
+		slavic   = []string{"RU", "BG", "PL", "CS", "LT", "LV", "SL", "SK", "UK"}
+		romance  = []string{"IT", "PT-PT", "RO", "FR", "ES"}
+		germanic = []string{"NL", "DA", "DE", "SV"}
+	)
 	switch group {
 	case "g", "germanic":
 		return germanic, nil
@@ -111,12 +110,11 @@ func translate(text, language, token string) (string, error) {
 	defer resp.Body.Close()
 
 	var r APIResponse
-	err = json.NewDecoder(resp.Body).Decode(&r)
-	if err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&r); err != nil {
 		return "", err
 	}
 
-	if len(r.Translations) == 0 {
+	if len(r.Translations) == 0 || r.Translations[0].Text == "" {
 		return "", errors.New("no translation available")
 	}
 
